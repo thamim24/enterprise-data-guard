@@ -1,0 +1,33 @@
+NON-DISCLOSURE AGREEMENT TEMPLATE
+================================
+CONFIDENTIAL - LEGAL DEPARTMENT ONLY
+
+This Agreement is entered into on [DATE] between [COMPANY NAME] and [PARTY NAME].
+
+1. CONFIDENTIAL INFORMATION:
+    Any and all information disclosed by either party including but not limited to:
+    - Technical data and know-how
+    - Business plans and strategies
+    - Customer lists and information
+    - Financial information
+    - Trade secrets and proprietary methods
+
+2. OBLIGATIONS:
+    - Maintain strict confidentiality
+    - Use information only for agreed purposes
+    - Return all materials upon request
+    - Notify of any unauthorized disclosure
+
+3. TERM:
+    This agreement remains in effect for [DURATION] years from the date signed.
+
+4. REMEDIES:
+    Breach may result in monetary damages and injunctive relief.
+    Liquidated damages: $[AMOUNT] per breach.
+
+5. GOVERNING LAW:
+    This agreement shall be governed by [STATE] law.
+
+CONFIDENTIAL - LEGAL DEPARTMENT ONLY
+Template Version: 2.1
+Last Updated: 2024-01-01

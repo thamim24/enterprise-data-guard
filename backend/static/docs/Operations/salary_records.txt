@@ -1,0 +1,9 @@
+SALARY RECORDS - CONFIDENTIAL
+=============================
+
+Employee salary information:
+- John Doe: $75,000
+- Jane Smith: $82,000
+- Mike Johnson: $68,000
+
+This document contains highly sensitive financial data.

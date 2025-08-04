@@ -1,0 +1,33 @@
+# General ignores
+.DS_Store
+.env
+.idea/
+.vscode/
+Thumbs.db
+Readme1.md
+*.log
+*.bak
+*.tmp
+
+# Backend specific (if venv or models might appear at root, though better handled in backend/.gitignore)
+/backend/venv/
+/backend/models/
+/backend/__pycache__/
+/backend/database.db
+/backend/reports/
+/backend/static/docs/uploads/
+/backend/static/docs/backups/
+
+# Frontend specific (if node_modules might appear at root, though better handled in frontend/.gitignore)
+/frontend/node_modules/
+/frontend/build/
+
+# Python specific files generally not needed
+*.pyc
+__pycache__/
+
+# Node.js specific files generally not needed
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-store/

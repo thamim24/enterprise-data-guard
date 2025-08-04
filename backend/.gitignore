@@ -1,0 +1,36 @@
+# Python virtual environment
+venv/
+.Python/
+env/
+# Environments
+.env
+
+# Byte-code files
+*.pyc
+__pycache__/
+
+# Database files
+database.db
+*.sqlite
+*.sqlite3
+
+# ML Models
+models/
+
+# Generated reports
+reports/
+
+# Uploaded and backed-up documents
+static/docs/uploads/
+static/docs/backups/
+
+# IDE specific files
+.idea/
+.vscode/
+
+# Logs
+*.log
+
+# Operating System Files
+.DS_Store
+Thumbs.db

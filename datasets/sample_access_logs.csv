@@ -1,0 +1,4 @@
+user_id,document_name,action,timestamp,risk_score,anomaly_flag
+1,salary_policy_v1.txt,read,2024-01-01 14:30:00,0.1,false
+2,tax_rules_2024.txt,read,2024-01-01 15:00:00,0.2,false
+3,nda_contract_template.txt,upload,2024-01-01 15:30:00,0.3,false

@@ -1,0 +1,4 @@
+document_name,department,version_hash,created_at
+salary_policy_v1.txt,HR,abc123def456,2024-01-01 10:00:00
+tax_rules_2024.txt,Finance,def456ghi789,2024-01-01 11:00:00
+nda_contract_template.txt,Legal,ghi789jkl012,2024-01-01 12:00:00

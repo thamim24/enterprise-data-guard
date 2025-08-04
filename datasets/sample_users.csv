@@ -1,0 +1,5 @@
+username,department,role,password_hash
+admin,IT,admin,$2b$12$example_admin_hash
+john_hr,HR,user,$2b$12$example_user_hash
+sarah_finance,Finance,user,$2b$12$example_user_hash
+mike_legal,Legal,user,$2b$12$example_user_hash

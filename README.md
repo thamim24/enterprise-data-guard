@@ -131,6 +131,7 @@ Before you begin, ensure you have the following installed:
     source venv/bin/activate       # Activate the virtual environment (on Windows: `venv\Scripts\activate`)
     pip install -r requirements.txt # Install Python dependencies
     python db.py                   # Initialize the SQLite database with sample data
+    python app.py
     ```
 
 3.  **Set up the Frontend:**
@@ -140,6 +141,7 @@ Before you begin, ensure you have the following installed:
     ```bash
     cd ../frontend
     npm install                    # Install Node.js dependencies
+    npm start
     ```
 
 4.  **Make the `run.sh` script executable (Linux/macOS only):**

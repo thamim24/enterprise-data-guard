@@ -161,42 +161,50 @@ const AdminDashboard = ({ user, onLogout }) => {
         {dashboardData && (
           <>
             {/* Enhanced Summary Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '25px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '15px', marginBottom: '25px' }}>
+
+              {/* Card 1: Active Alerts */}
               <div className="card" style={{ textAlign: 'center', background: '#fff3cd', border: '2px solid #ffc107' }}>
-                <h3 style={{ margin: '0 0 10px 0', color: '#856404' }}>🚨 Active Alerts</h3>
-                <h1 style={{ margin: '0', color: '#856404' }}>{dashboardData.summary.total_alerts}</h1>
+                <h3 style={{ margin: '0 0 5px 0', color: '#856404', fontSize: '0.9em' }}>🚨 Active Alerts</h3>
+                <h1 style={{ margin: '0', color: '#856404', fontSize: '2em' }}>{dashboardData.summary.total_alerts}</h1>
                 <small>Security incidents</small>
               </div>
               
+              {/* Card 2: High Risk */}
               <div className="card" style={{ textAlign: 'center', background: '#f8d7da', border: '2px solid #dc3545' }}>
-                <h3 style={{ margin: '0 0 10px 0', color: '#721c24' }}>⚠️ High Risk</h3>
-                <h1 style={{ margin: '0', color: '#721c24' }}>{dashboardData.summary.high_risk_alerts}</h1>
+                <h3 style={{ margin: '0 0 5px 0', color: '#721c24', fontSize: '0.9em' }}>⚠️ High Risk</h3>
+                <h1 style={{ margin: '0', color: '#721c24', fontSize: '2em' }}>{dashboardData.summary.high_risk_alerts}</h1>
                 <small>Critical threats</small>
               </div>
               
+              {/* Card 3: Modifications */}
               <div className="card" style={{ textAlign: 'center', background: '#d1ecf1', border: '2px solid #17a2b8' }}>
-                <h3 style={{ margin: '0 0 10px 0', color: '#0c5460' }}>🔄 Modifications</h3>
-                <h1 style={{ margin: '0', color: '#0c5460' }}>{documentModifications.length}</h1>
+                <h3 style={{ margin: '0 0 5px 0', color: '#0c5460', fontSize: '0.9em' }}>🔄 Modifications</h3>
+                <h1 style={{ margin: '0', color: '#0c5460', fontSize: '2em' }}>{documentModifications.length}</h1>
                 <small>Document changes</small>
               </div>
               
+              {/* Card 4: Data Leaks */}
               <div className="card" style={{ textAlign: 'center', background: '#ffeaa7', border: '2px solid #fd7e14' }}>
-                <h3 style={{ margin: '0 0 10px 0', color: '#8b4513' }}>🚨 Data Leaks</h3>
-                <h1 style={{ margin: '0', color: '#8b4513' }}>{dataLeakAttempts.length}</h1>
+                <h3 style={{ margin: '0 0 5px 0', color: '#8b4513', fontSize: '0.9em' }}>🚨 Data Leaks</h3>
+                <h1 style={{ margin: '0', color: '#8b4513', fontSize: '2em' }}>{dataLeakAttempts.length}</h1>
                 <small>Unauthorized access</small>
               </div>
               
+              {/* Card 5: Access Events */}
               <div className="card" style={{ textAlign: 'center', background: '#d4edda', border: '2px solid #28a745' }}>
-                <h3 style={{ margin: '0 0 10px 0', color: '#155724' }}>📊 Access Events</h3>
-                <h1 style={{ margin: '0', color: '#155724' }}>{dashboardData.summary.recent_access}</h1>
+                <h3 style={{ margin: '0 0 5px 0', color: '#155724', fontSize: '0.9em' }}>📊 Access Events</h3>
+                <h1 style={{ margin: '0', color: '#155724', fontSize: '2em' }}>{dashboardData.summary.recent_access}</h1>
                 <small>Total activities</small>
               </div>
               
+              {/* Card 6: Anomalies */}
               <div className="card" style={{ textAlign: 'center', background: '#e2e3e5', border: '2px solid #6c757d' }}>
-                <h3 style={{ margin: '0 0 10px 0', color: '#495057' }}>🔍 Anomalies</h3>
-                <h1 style={{ margin: '0', color: '#495057' }}>{dashboardData.summary.anomalous_activities}</h1>
+                <h3 style={{ margin: '0 0 5px 0', color: '#495057', fontSize: '0.9em' }}>🔍 Anomalies</h3>
+                <h1 style={{ margin: '0', color: '#495057', fontSize: '2em' }}>{dashboardData.summary.anomalous_activities}</h1>
                 <small>Suspicious behavior</small>
               </div>
+
             </div>
 
             {/* Enhanced Tab Navigation */}

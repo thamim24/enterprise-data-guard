@@ -23,8 +23,6 @@ reports/
 # Uploaded and backed-up documents
 static/docs/uploads/
 static/docs/backups/
-static/*.txt
-reports/
 
 # IDE specific files
 .idea/

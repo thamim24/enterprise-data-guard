@@ -24,6 +24,7 @@ reports/
 static/docs/uploads/
 static/docs/backups/
 static/*.txt
+reports/
 
 # IDE specific files
 .idea/

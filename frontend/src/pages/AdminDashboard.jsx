@@ -459,17 +459,17 @@ const AdminDashboard = ({ user, onLogout }) => {
                   ) : (
                     <div>
                       <div style={{ marginBottom: '20px', padding: '15px', background: '#fff5f5', borderRadius: '8px', border: '1px solid #fed7d7' }}>
-                        <h4>🚨 Leak Attempt Summary</h4>
+                        {/* <h4>🚨 Leak Attempt Summary</h4> */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
                           <div>
                             <strong>Total Attempts:</strong> {dataLeakAttempts.length}
                           </div>
-                          <div>
+                          {/* <div>
                             <strong>Blocked:</strong> {dataLeakAttempts.filter(a => a.blocked).length}
-                          </div>
-                          <div>
+                          </div> */}
+                          {/* <div>
                             <strong>High Risk:</strong> {dataLeakAttempts.filter(a => a.risk_score >= 0.8).length}
-                          </div>
+                          </div> */}
                           <div>
                             <strong>Today:</strong> {dataLeakAttempts.filter(a => 
                               new Date(a.timestamp).toDateString() === new Date().toDateString()

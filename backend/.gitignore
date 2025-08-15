@@ -30,7 +30,7 @@ static/docs/backups/
 
 # Logs
 *.log
-
+ 
 # Operating System Files
 .DS_Store
 Thumbs.db

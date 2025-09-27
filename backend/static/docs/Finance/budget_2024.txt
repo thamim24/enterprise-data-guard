@@ -4,6 +4,6 @@ ANNUAL BUDGET 2024 - FINANCE DEPARTMENT
 Q1 Budget: $100,000
 Q2 Budget: $120,000
 Q3 Budget: $110,000
-Q4 Budget: $130,000
+Q4 Budget: $830,000
 
 This is a sample Finance document.

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import axios from 'axios';
 
 const UploadForm = ({ userDepartment, onUploadSuccess }) => {
@@ -12,7 +12,7 @@ const UploadForm = ({ userDepartment, onUploadSuccess }) => {
 
   const departments = ['HR', 'Finance', 'Legal', 'IT', 'Operations'];
   const maxFileSize = 10 * 1024 * 1024; // 10MB
-  const allowedTypes = ['.txt', '.pdf', '.doc', '.docx', '.xlsx', '.pptx', '.jpg', '.png'];
+  const allowedTypes = useMemo(() => ['.txt', '.pdf', '.doc', '.docx', '.xlsx', '.pptx', '.jpg', '.png'], []);
 
   const validateFile = useCallback((file) => {
   const errors = [];
@@ -42,7 +42,7 @@ const UploadForm = ({ userDepartment, onUploadSuccess }) => {
     const fileErrors = validateFile(file);
     if (fileErrors.length === 0) {
       const isDuplicate = selectedFiles.some(existingFile => 
-        existingFile.name === file.name //&& existingFile.size === file.size
+        existingFile.name === file.name && existingFile.size === file.size
       );
       if (!isDuplicate) {
         validFiles.push({

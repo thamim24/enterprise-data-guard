@@ -18,10 +18,10 @@ init_database()
 
 app = FastAPI()
 
-# CORS middleware
+# CORS middleware - Allow access from any IP for development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],  # Allow all origins for development
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -194,12 +194,56 @@ async def get_modification_diff(modification_id: int, current_user: User = Depen
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
-        # Mock diff data - in real implementation, you'd read actual file differences
+        # Get the access log entry
+        log_entry = execute_db_query(
+            "SELECT * FROM access_logs WHERE id = ?", 
+            (modification_id,), fetch_one=True
+        )
+        
+        if not log_entry:
+            raise HTTPException(status_code=404, detail="Modification not found")
+        
+        # Try to find the document and its backup
+        doc_name = log_entry['document_name']
+        dept = log_entry['user_department'] or log_entry['document_department'] or 'Unknown'
+        
+        # Construct file paths
+        current_file = f"static/docs/{dept}/{doc_name}"
+        backup_file = f"{current_file}.backup"
+        
+        old_content = "Original content not available"
+        new_content = "Modified content not available"
+        
+        # Try to read backup (original) and current (modified) files
+        try:
+            if os.path.exists(backup_file):
+                with open(backup_file, 'r', encoding='utf-8', errors='ignore') as f:
+                    old_content = f.read()
+            elif os.path.exists(current_file):
+                # If no backup, show current as both (no diff)
+                with open(current_file, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+                old_content = content
+                new_content = content
+        except Exception as read_error:
+            print(f"Error reading files: {read_error}")
+        
+        try:
+            if os.path.exists(current_file):
+                with open(current_file, 'r', encoding='utf-8', errors='ignore') as f:
+                    new_content = f.read()
+        except Exception as read_error:
+            print(f"Error reading current file: {read_error}")
+        
         return {
-            "old_content": "This is the original document content.\nLine 2 was here.\nLine 3 remained.",
-            "new_content": "This is the MODIFIED document content.\nLine 2 was CHANGED.\nLine 3 remained.\nNew line 4 was added."
+            "old_content": old_content,
+            "new_content": new_content,
+            "document_name": doc_name,
+            "modification_time": log_entry['timestamp']
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Modification diff error: {e}")
         raise HTTPException(status_code=500, detail="Failed to get modification details")
@@ -260,8 +304,8 @@ async def get_access_logs(current_user: User = Depends(get_current_user)):
         return {"logs": []}
 
 @app.get("/api/admin/reports/generate")
-async def generate_report(days: int = 7, current_user: User = Depends(get_current_user)):
-    """Generate comprehensive security report"""
+async def generate_report(days: int = 7, format: str = "txt", current_user: User = Depends(get_current_user)):
+    """Generate comprehensive security report in text or PDF format"""
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
@@ -284,6 +328,23 @@ async def generate_report(days: int = 7, current_user: User = Depends(get_curren
             ORDER BY al.timestamp DESC 
             LIMIT 200
         ''', fetch_all=True)
+        
+        # Generate PDF report if requested
+        if format.lower() == "pdf":
+            from reports.report_generator import pdf_generator
+            try:
+                pdf_path = pdf_generator.generate_comprehensive_security_report(days)
+                filename = os.path.basename(pdf_path)
+                return {
+                    "message": "PDF security report generated successfully",
+                    "report_path": pdf_path,
+                    "download_url": f"/reports/{filename}",
+                    "format": "pdf"
+                }
+            except Exception as pdf_error:
+                print(f"PDF generation failed: {pdf_error}")
+                # Fall back to text report
+                format = "txt"
         
         # Create comprehensive text report
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

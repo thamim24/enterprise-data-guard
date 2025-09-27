@@ -98,25 +98,24 @@ const UserDashboard = ({ user, onLogout }) => {
                   <th>Actions</th>
                 </tr>
               </thead>
-          <tbody>
-            {documents.map((doc) => (
-              <tr key={doc.id}>
-                <td>📄 {doc.name}</td>
-                <td>{doc.department}</td>
-                <td>{user.username || 'System'}</td> {/* `user` comes from outer scope */}
-                <td>{new Date(doc.updated_at).toLocaleString()}</td>
-                <td>
-                  <button 
-                    className="btn" 
-                    onClick={() => handleDownload(doc.id, doc.name)}
-                  >
-                    Download
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-
+              <tbody>
+                {documents.map(doc => (
+                  <tr key={doc.id}>
+                    <td>📄 {doc.name}</td>
+                    <td>{doc.department}</td>
+                    <td>{doc.modified_by_username || 'System'}</td>
+                    <td>{new Date(doc.updated_at).toLocaleString()}</td>
+                    <td>
+                      <button 
+                        className="btn" 
+                        onClick={() => handleDownload(doc.id, doc.name)}
+                      >
+                        Download
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
             </table>
           )}
         </div>

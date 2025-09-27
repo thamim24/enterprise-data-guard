@@ -135,15 +135,44 @@ async def upload_document(
         new_hash = calculate_file_hash(filepath)
         
         if file_exists:
+            # Get existing document ID
+            existing_doc = execute_db_query(
+                "SELECT id FROM documents WHERE filepath = ?", 
+                (filepath,), fetch_one=True
+            )
+            doc_id = existing_doc['id'] if existing_doc else None
+            
             # Update existing document
             if old_hash != new_hash:
-                # Document was modified
-                create_alert(
-                    current_user.id,
-                    file.filename,
-                    "document_modified",
-                    f"Document {file.filename} was modified"
-                )
+                # Document was modified - create diff analysis
+                try:
+                    with open(f"{filepath}.backup", 'r', encoding='utf-8') as f:
+                        old_content = f.read()
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        new_content = f.read()
+                    
+                    # Calculate real diff stats
+                    from reports.diff_utils import calculate_diff_stats
+                    diff_stats = calculate_diff_stats(old_content, new_content)
+                    
+                    risk_score = min(1.0, diff_stats['change_percentage'] / 100)
+                    
+                    create_alert(
+                        current_user.id,
+                        file.filename,
+                        "document_modified",
+                        f"Document {file.filename} was modified: {diff_stats['added_lines']} lines added, {diff_stats['removed_lines']} lines removed ({diff_stats['change_percentage']:.1f}% changed)",
+                        risk_score
+                    )
+                except Exception as e:
+                    print(f"Error analyzing diff: {e}")
+                    create_alert(
+                        current_user.id,
+                        file.filename,
+                        "document_modified",
+                        f"Document {file.filename} was modified",
+                        0.3
+                    )
             
             execute_db_query('''
                 UPDATE documents 
@@ -151,7 +180,9 @@ async def upload_document(
                 WHERE filepath = ?
             ''', (new_hash, current_user.id, get_current_ist_timestamp(), filepath))
             
-            log_access(current_user.id, None, file.filename, "update")
+            log_access(current_user.id, doc_id, file.filename, "update", 
+                      anomaly_flag=(old_hash != new_hash), 
+                      risk_score=0.3 if old_hash != new_hash else 0.0)
         else:
             # Create new document record
             execute_db_query('''

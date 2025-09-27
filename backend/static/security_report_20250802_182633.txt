@@ -1,0 +1,49 @@
+ENTERPRISE DATA GUARD - SECURITY REPORT
+==================================================
+Generated: 2025-08-02 18:26:33.630080
+
+SECURITY ALERTS
+--------------------
+- 2025-08-02T18:17:33.509733+05:30: external_tampering by john_hr
+  Description: Document salary_policy_v1.txt was modified outside the system
+  Document: salary_policy_v1.txt
+
+- 2025-08-02T18:14:14.818596+05:30: external_tampering by john_hr
+  Description: Document salary_policy_v1.txt was modified outside the system
+  Document: salary_policy_v1.txt
+
+- 2025-08-02T18:10:54.968744+05:30: external_tampering by john_hr
+  Description: Document salary_policy_v1.txt was modified outside the system
+  Document: salary_policy_v1.txt
+
+- 2025-08-02T18:07:37.114720+05:30: external_tampering by john_hr
+  Description: Document salary_policy_v1.txt was modified outside the system
+  Document: salary_policy_v1.txt
+
+
+ACCESS LOGS
+--------------------
+- 2025-08-02T18:07:34.703472+05:30: read by john_hr
+  Document: document_list
+
+- 2025-08-02T18:07:34.653750+05:30: read by john_hr
+  Document: document_list
+
+- 2025-08-02 18:21:47: upload by john_hr
+  Document: salary_policy_v1 (2).txt
+
+- 2025-08-02 18:21:47: list by john_hr
+  Document: document_list
+
+- 2025-08-02 18:21:43: download by john_hr
+  Document: salary_policy_v1.txt
+
+- 2025-08-02 18:21:17: download by john_hr
+  Document: salary_policy_v1.txt
+
+- 2025-08-02 18:21:17: download by john_hr
+  Document: salary_policy_v1.txt
+
+- 2025-08-02 18:21:17: download by john_hr
+  Document: salary_policy_v1.txt
+

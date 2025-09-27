@@ -109,16 +109,16 @@ const AdminDashboard = ({ user, onLogout }) => {
     return 'LOW';
   };
 
-  const getAlertTypeIcon = (type) => {
-    switch (type) {
-      case 'document_tampering': return '🔄';
-      case 'data_leak_attempt': return '🚨';
-      case 'cross_department_access': return '🔒';
-      case 'external_tampering': return '⚠️';
-      case 'data_sabotage_attempt': return '💥';
-      default: return '🔍';
-    }
-  };
+  // const getAlertTypeIcon = (type) => {
+  //   switch (type) {
+  //     case 'document_tampering': return '🔄';
+  //     case 'data_leak_attempt': return '🚨';
+  //     case 'cross_department_access': return '🔒';
+  //     case 'external_tampering': return '⚠️';
+  //     case 'data_sabotage_attempt': return '💥';
+  //     default: return '🔍';
+  //   }
+  // };
 
   const viewModificationDetails = async (modification) => {
     try {
@@ -139,7 +139,7 @@ const AdminDashboard = ({ user, onLogout }) => {
   return (
     <div>
       <nav className="navbar">
-        <h1>🛡️ Security Command Center</h1>
+        <h1>🛡️ Enterprise Data Guard</h1>
         <div className="user-info">
           <span>👨‍💼 {user.username} (Administrator)</span>
           <button className="btn btn-success" onClick={generateReport}>
@@ -160,7 +160,7 @@ const AdminDashboard = ({ user, onLogout }) => {
 
         {dashboardData && (
           <>
-            {/* Enhanced Summary Cards */}
+           {/* Enhanced Summary Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '15px', marginBottom: '25px' }}>
 
               {/* Card 1: Active Alerts */}
@@ -284,7 +284,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                   </div>
 
                   {/* Recent Critical Events */}
-                  <div className="card" style={{ marginTop: '20px', background: '#fff5f5', border: '1px solid #fed7d7' }}>
+                  {/* <div className="card" style={{ marginTop: '20px', background: '#fff5f5', border: '1px solid #fed7d7' }}>
                     <h4 style={{ color: '#c53030' }}>🚨 Recent Critical Events</h4>
                     {dashboardData.alerts.filter(alert => alert.risk_score >= 0.7).slice(0, 3).map(alert => (
                       <div key={alert.id} style={{ 
@@ -301,12 +301,12 @@ const AdminDashboard = ({ user, onLogout }) => {
                         <small>User: {alert.username} | Time: {new Date(alert.timestamp).toLocaleString()}</small>
                       </div>
                     ))}
-                  </div>
+                  </div> */}
                 </div>
               )}
 
               {selectedTab === 'alerts' && (
-                <div>
+                <div className={dashboardData.alerts.length > 0 ? "alerts-section danger" : "alerts-section safe"}>
                   <h3>🚨 Security Alerts ({dashboardData.alerts.length})</h3>
                   {dashboardData.alerts.length === 0 ? (
                     <div className="alert alert-success">
@@ -459,17 +459,17 @@ const AdminDashboard = ({ user, onLogout }) => {
                   ) : (
                     <div>
                       <div style={{ marginBottom: '20px', padding: '15px', background: '#fff5f5', borderRadius: '8px', border: '1px solid #fed7d7' }}>
-                        {/* <h4>🚨 Leak Attempt Summary</h4> */}
+                        <h4>🚨 Leak Attempt Summary</h4>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
                           <div>
                             <strong>Total Attempts:</strong> {dataLeakAttempts.length}
                           </div>
-                          {/* <div>
+                          <div>
                             <strong>Blocked:</strong> {dataLeakAttempts.filter(a => a.blocked).length}
-                          </div> */}
-                          {/* <div>
+                          </div>
+                          <div>
                             <strong>High Risk:</strong> {dataLeakAttempts.filter(a => a.risk_score >= 0.8).length}
-                          </div> */}
+                          </div>
                           <div>
                             <strong>Today:</strong> {dataLeakAttempts.filter(a => 
                               new Date(a.timestamp).toDateString() === new Date().toDateString()
@@ -524,10 +524,10 @@ const AdminDashboard = ({ user, onLogout }) => {
                                 </span>
                               </td>
                               <td>
-                                {/* {attempt.blocked ?  */}
-                                  <span style={{ color: '#28a745' }}>🛡️ BLOCKED</span> {/*:*/} 
-                                  {/* <span style={{ color: '#dc3545' }}>⚠️ ALLOWED</span> */}
-                                {/* } */}
+                                {attempt.blocked ? 
+                                  <span style={{ color: '#28a745' }}>🛡️ BLOCKED</span> : 
+                                  <span style={{ color: '#dc3545' }}>⚠️ ALLOWED</span>
+                                }
                               </td>
                               <td>{new Date(attempt.timestamp).toLocaleString()}</td>
                             </tr>

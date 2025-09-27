@@ -89,7 +89,7 @@ def init_database():
         )
     ''')
     
-    # Access logs table
+    # Access logs table with enhanced fields
     execute_db_query('''
         CREATE TABLE IF NOT EXISTS access_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -100,12 +100,14 @@ def init_database():
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             anomaly_flag BOOLEAN DEFAULT FALSE,
             risk_score REAL DEFAULT 0.0,
+            user_department TEXT,
+            document_department TEXT,
             FOREIGN KEY (user_id) REFERENCES users (id),
             FOREIGN KEY (doc_id) REFERENCES documents (id)
         )
     ''')
     
-    # Alerts table
+    # Alerts table with severity field
     execute_db_query('''
         CREATE TABLE IF NOT EXISTS alerts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -116,6 +118,7 @@ def init_database():
             risk_score REAL DEFAULT 0.0,
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             resolved BOOLEAN DEFAULT FALSE,
+            severity TEXT DEFAULT 'low',
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
@@ -231,23 +234,59 @@ This is a sample Legal document.
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             ''', (filename, department, filepath, file_hash, 1, get_current_ist_timestamp(), get_current_ist_timestamp()))
 
-def log_access(user_id: int, doc_id: Optional[int], document_name: str, action: str):
-    """Simple access logging"""
+def log_access(user_id: int, doc_id: Optional[int], document_name: str, action: str, 
+               anomaly_flag: bool = False, risk_score: float = 0.0):
+    """Enhanced access logging with anomaly detection"""
     try:
+        # Get user and document departments
+        user_dept = execute_db_query(
+            "SELECT department FROM users WHERE id = ?", 
+            (user_id,), fetch_one=True
+        )
+        user_department = user_dept['department'] if user_dept else 'Unknown'
+        
+        doc_department = None
+        if doc_id:
+            doc_dept = execute_db_query(
+                "SELECT department FROM documents WHERE id = ?", 
+                (doc_id,), fetch_one=True
+            )
+            doc_department = doc_dept['department'] if doc_dept else None
+        
+        # Calculate risk score for unauthorized actions
+        if action in ['unauthorized_upload_attempt', 'unauthorized_access_attempt']:
+            risk_score = max(risk_score, 0.8)
+            anomaly_flag = True
+        elif doc_department and user_department != doc_department:
+            risk_score = max(risk_score, 0.6)
+            anomaly_flag = True
+        
         execute_db_query('''
-            INSERT INTO access_logs (user_id, doc_id, document_name, action, timestamp)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (user_id, doc_id, document_name, action, get_current_ist_timestamp()))
+            INSERT INTO access_logs (user_id, doc_id, document_name, action, timestamp, 
+                                   anomaly_flag, risk_score, user_department, document_department)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (user_id, doc_id, document_name, action, get_current_ist_timestamp(), 
+              anomaly_flag, risk_score, user_department, doc_department))
     except Exception as e:
         print(f"Failed to log access: {e}")
 
-def create_alert(user_id: int, document_name: str, alert_type: str, description: str):
-    """Simple alert creation"""
+def create_alert(user_id: int, document_name: str, alert_type: str, description: str, 
+                 risk_score: float = 0.0):
+    """Enhanced alert creation with risk scoring"""
     try:
+        # Determine severity based on alert type and risk score
+        severity = "low"
+        if alert_type in ['unauthorized_upload', 'unauthorized_access', 'data_leak_attempt'] or risk_score >= 0.8:
+            severity = "critical"
+        elif alert_type in ['document_modified', 'cross_department_access'] or risk_score >= 0.6:
+            severity = "high"
+        elif risk_score >= 0.4:
+            severity = "medium"
+        
         execute_db_query('''
-            INSERT INTO alerts (user_id, document_name, alert_type, description, timestamp)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (user_id, document_name, alert_type, description, get_current_ist_timestamp()))
+            INSERT INTO alerts (user_id, document_name, alert_type, description, timestamp, risk_score, severity)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (user_id, document_name, alert_type, description, get_current_ist_timestamp(), risk_score, severity))
     except Exception as e:
         print(f"Failed to create alert: {e}")
 

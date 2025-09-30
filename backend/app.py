@@ -11,75 +11,77 @@ import os
 from datetime import datetime
 from typing import Optional # Necessary for the explicit imports used
 
-# Initialize FastAPI app with a title
+# -----------------------------
+# 1️⃣ Initialize FastAPI app
+# -----------------------------
 app = FastAPI(title="Enterprise Data Guard API")
 
 # -----------------------------
-# 1️⃣ Include API routers
+# 2️⃣ Include API routers
 # -----------------------------
-# Include core routers with tags for documentation
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(docs_router, prefix="/api/documents", tags=["documents"])
 
 # -----------------------------
-# 2️⃣ CORS middleware
+# 3️⃣ CORS middleware
 # -----------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Allow all origins for development
+    allow_origins=["*"], # Development; restrict in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # -----------------------------
-# 3️⃣ Static folders
+# 4️⃣ Static folders
 # -----------------------------
-# Ensure static folders exist for documents and reports
-os.makedirs("static/docs", exist_ok=True) # Ensuring 'docs' exists for modification-diff endpoint
+os.makedirs("static/docs", exist_ok=True)
 os.makedirs("reports", exist_ok=True)
 
-# Mount static file directories for serving documents and reports
+# Mount dedicated static directories. These take precedence over the root mount below.
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/reports", StaticFiles(directory="reports"), name="reports")
 
 # -----------------------------
-# 4️⃣ React frontend setup (SPA Catch-all) - Using the robust /frontend-static method
+# 5️⃣ React frontend (SPA) - FIXED TO MOUNT AT ROOT
 # -----------------------------
 frontend_build = os.path.join(os.path.dirname(__file__), "../frontend/build")
 index_file = os.path.join(frontend_build, "index.html")
 
 if os.path.exists(frontend_build):
-    # Mount frontend static assets separately
-    # This prevents the StaticFiles mount from overriding all other API/static routes
-    app.mount("/frontend-static", StaticFiles(directory=frontend_build, html=True), name="frontend-static")
-    print(f"✅ Frontend build found and mounted at /frontend-static: {frontend_build}")
+    # FIX: Mount the React build at the root path (/) so relative assets (/static/js/...) resolve correctly.
+    # Explicit API routes and static mounts defined earlier will take precedence.
+    app.mount("/", StaticFiles(directory=frontend_build, html=True), name="frontend")
+    print(f"✅ React frontend mounted at / from {frontend_build}")
 else:
-    print(f"⚠️ Frontend build folder not found at {frontend_build}. Only API will work.")
+    print(f"⚠️ Frontend build not found at {frontend_build}. Only API will work.")
 
 @app.get("/{full_path:path}")
 async def serve_react(full_path: str):
     """
-    Serve React frontend for all non-API routes.
-    This ensures SPA routing (e.g., /dashboard, /login) works by always returning index.html.
+    Catch-all for SPA routes not handled by the StaticFiles mount on '/'. 
+    Primarily ensures a clean 404 for non-existent API/static paths if they are not caught earlier.
     """
-    # Prevent this catch-all from trapping API calls or files served by the explicit StaticFiles mounts
-    if full_path.startswith("api") or full_path.startswith("static") or full_path.startswith("reports") or full_path.startswith("frontend-static"):
-        raise HTTPException(status_code=404, detail="API endpoint or Static file not found")
+    # Exclude known API and explicit static prefixes defined earlier in the file.
+    if full_path.startswith("api") or full_path.startswith("reports") or full_path.startswith("static"):
+        raise HTTPException(status_code=404, detail="API endpoint or static file not found")
     
-    # Serve the index.html for all other paths (SPA routing)
+    # This dynamic route serves as a fallback for SPA client-side routing.
+    # Since '/' is mounted with html=True, this is mainly for robustness in various environments.
     if os.path.exists(index_file):
         return FileResponse(index_file)
-    else:
-        return {"message": "Frontend not built yet."}
+    
+    raise HTTPException(status_code=404, detail="Resource not found.")
+
 
 # -----------------------------
-# 5️⃣ Initialize database
+# 6️⃣ Initialize database
 # -----------------------------
 init_database()
 
 # -----------------------------
-# 6️⃣ Admin dashboard & endpoints (Refactored into APIRouter)
+# 7️⃣ Admin router & utilities (Complete Endpoints)
 # -----------------------------
 admin_router = APIRouter(
     prefix="/api/admin", 
@@ -562,14 +564,12 @@ async def get_system_health(current_user: User = Depends(check_admin_role)):
 app.include_router(admin_router)
 
 # -----------------------------
-# 7️⃣ Health check
+# 8️⃣ Health check
 # -----------------------------
 @app.get("/healthz")
 async def health_check():
     """Simple health check endpoint"""
     return {"status": "ok"}
-
-
 
 # if __name__ == "__main__":
 #     import uvicorn

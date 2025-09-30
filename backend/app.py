@@ -1,5 +1,5 @@
-# backend/app.py
-from fastapi import FastAPI, Depends, HTTPException, APIRouter
+#backend/app.py:-
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -17,7 +17,7 @@ app = FastAPI(title="Enterprise Data Guard API")
 # -----------------------------
 # 1️⃣ Include API routers
 # -----------------------------
-# Include core routers with tags for documentation
+# Include routers with tags for documentation
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(docs_router, prefix="/api/documents", tags=["documents"])
 
@@ -63,8 +63,8 @@ async def serve_react(full_path: str):
     This ensures SPA routing (e.g., /dashboard, /login) works by always returning index.html.
     """
     # Prevent this catch-all from trapping API calls
-    if full_path.startswith("api") or full_path.startswith("static") or full_path.startswith("reports") or full_path.startswith("frontend-static"):
-        raise HTTPException(status_code=404, detail="API endpoint or Static file not found")
+    if full_path.startswith("api") or full_path.startswith("static") or full_path.startswith("reports"):
+        raise HTTPException(status_code=404, detail="API endpoint not found or Static file not found")
     
     # Serve the index.html for all other paths
     if os.path.exists(index_file):
@@ -78,26 +78,15 @@ async def serve_react(full_path: str):
 init_database()
 
 # -----------------------------
-# 6️⃣ Admin dashboard & endpoints (Refactored into APIRouter)
+# 6️⃣ Admin dashboard & endpoints
 # -----------------------------
-admin_router = APIRouter(
-    prefix="/api/admin", 
-    tags=["admin"],
-    dependencies=[Depends(get_current_user)] # Dependency for all admin routes
-)
 
-# Admin utility function to check role (used in router below)
-def check_admin_role(current_user: User = Depends(get_current_user)):
+@app.get("/api/admin/dashboard")
+async def get_admin_dashboard(current_user: User = Depends(get_current_user)):
+    """Get comprehensive admin dashboard data"""
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
-    return current_user
-
-# ----------------
-# Dashboard
-# ----------------
-@admin_router.get("/dashboard")
-async def get_admin_dashboard(current_user: User = Depends(check_admin_role)):
-    """Get comprehensive admin dashboard data"""
+    
     try:
         # Get recent alerts
         alerts = execute_db_query('''
@@ -171,12 +160,12 @@ async def get_admin_dashboard(current_user: User = Depends(check_admin_role)):
             }
         }
 
-# ----------------
-# Modifications
-# ----------------
-@admin_router.get("/modifications")
-async def get_document_modifications(current_user: User = Depends(check_admin_role)):
+@app.get("/api/admin/modifications")
+async def get_document_modifications(current_user: User = Depends(get_current_user)):
     """Get document modifications for admin dashboard"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
     try:
         # Get from access logs where action indicates modification
         modifications = execute_db_query('''
@@ -204,9 +193,12 @@ async def get_document_modifications(current_user: User = Depends(check_admin_ro
         print(f"Modifications error: {e}")
         return {"modifications": []}
 
-@admin_router.get("/data-leaks")
-async def get_data_leak_attempts(current_user: User = Depends(check_admin_role)):
+@app.get("/api/admin/data-leaks")
+async def get_data_leak_attempts(current_user: User = Depends(get_current_user)):
     """Get data leak attempts for admin analysis"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
     try:
         # Get cross-department access attempts and unauthorized access
         attempts = execute_db_query('''
@@ -234,9 +226,12 @@ async def get_data_leak_attempts(current_user: User = Depends(check_admin_role))
         print(f"Data leaks error: {e}")
         return {"attempts": []}
 
-@admin_router.get("/modification-diff/{modification_id}")
-async def get_modification_diff(modification_id: int, current_user: User = Depends(check_admin_role)):
+@app.get("/api/admin/modification-diff/{modification_id}")
+async def get_modification_diff(modification_id: int, current_user: User = Depends(get_current_user)):
     """Get detailed diff for a document modification"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
     try:
         # Get the access log entry
         log_entry = execute_db_query(
@@ -296,12 +291,12 @@ async def get_modification_diff(modification_id: int, current_user: User = Depen
         print(f"Modification diff error: {e}")
         raise HTTPException(status_code=500, detail="Failed to get modification details")
 
-# ----------------
-# Alerts
-# ----------------
-@admin_router.get("/alerts")
-async def get_alerts(current_user: User = Depends(check_admin_role)):
+@app.get("/api/admin/alerts")
+async def get_alerts(current_user: User = Depends(get_current_user)):
     """Get all alerts"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
     try:
         alerts = execute_db_query('''
             SELECT a.*, u.username, u.department 
@@ -315,9 +310,12 @@ async def get_alerts(current_user: User = Depends(check_admin_role)):
         print(f"Alerts error: {e}")
         return {"alerts": []}
 
-@admin_router.post("/alerts/{alert_id}/resolve")
-async def resolve_alert(alert_id: int, current_user: User = Depends(check_admin_role)):
+@app.post("/api/admin/alerts/{alert_id}/resolve")
+async def resolve_alert(alert_id: int, current_user: User = Depends(get_current_user)):
     """Resolve an alert"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
     try:
         execute_db_query(
             "UPDATE alerts SET resolved = 1 WHERE id = ?", 
@@ -328,12 +326,12 @@ async def resolve_alert(alert_id: int, current_user: User = Depends(check_admin_
         print(f"Resolve alert error: {e}")
         raise HTTPException(status_code=500, detail="Failed to resolve alert")
 
-# ----------------
-# Access Logs
-# ----------------
-@admin_router.get("/access-logs")
-async def get_access_logs(current_user: User = Depends(check_admin_role)):
+@app.get("/api/admin/access-logs")
+async def get_access_logs(current_user: User = Depends(get_current_user)):
     """Get access logs"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
     try:
         logs = execute_db_query('''
             SELECT al.*, u.username, u.department
@@ -348,12 +346,12 @@ async def get_access_logs(current_user: User = Depends(check_admin_role)):
         print(f"Access logs error: {e}")
         return {"logs": []}
 
-# ----------------
-# Reports
-# ----------------
-@admin_router.get("/reports/generate")
-async def generate_report(days: int = 7, format: str = "txt", current_user: User = Depends(check_admin_role)):
+@app.get("/api/admin/reports/generate")
+async def generate_report(days: int = 7, format: str = "txt", current_user: User = Depends(get_current_user)):
     """Generate comprehensive security report in text or PDF format"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
     try:
         
         # Get data for report
@@ -497,9 +495,12 @@ async def generate_report(days: int = 7, format: str = "txt", current_user: User
         print(f"Report generation error: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate report")
 
-@admin_router.get("/system-health")
-async def get_system_health(current_user: User = Depends(check_admin_role)):
+@app.get("/api/admin/system-health")
+async def get_system_health(current_user: User = Depends(get_current_user)):
     """Get system health metrics"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
     try:
         # Get health metrics
         alerts_count = execute_db_query(
@@ -558,9 +559,6 @@ async def get_system_health(current_user: User = Depends(check_admin_role)):
             "daily_access": 0,
             "daily_anomalies": 0
         }
-
-# Include the admin router in the main app
-app.include_router(admin_router)
 
 # -----------------------------
 # 7️⃣ Health check

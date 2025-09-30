@@ -17,6 +17,9 @@ from fastapi.staticfiles import StaticFiles
 import os
 
 app = FastAPI()
+# 1️⃣ Mount API routers first
+app.include_router(auth_router, prefix="/api/auth")
+app.include_router(docs_router, prefix="/api/docs")
 
 frontend_path = os.path.join(os.path.dirname(__file__), "../frontend/build")
 

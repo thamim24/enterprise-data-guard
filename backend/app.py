@@ -21,11 +21,6 @@ app = FastAPI()
 frontend_path = os.path.join(os.path.dirname(__file__), "frontend_build")
 app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
 
-# Example API route
-@app.get("/api/health")
-def health_check():
-    return {"status": "ok"}
-
 # Initialize database
 init_database()
 

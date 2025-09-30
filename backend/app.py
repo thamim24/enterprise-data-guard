@@ -1,5 +1,5 @@
 #backend/app.py:-
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -9,7 +9,7 @@ from documents.routes import router as docs_router
 from db import execute_db_query, init_database
 import os
 from datetime import datetime
-from typing import Optional # Keep for type hinting clarity if needed later (though not strictly necessary here)
+from typing import Optional # Necessary for the explicit imports used
 
 # Initialize FastAPI app with a title
 app = FastAPI(title="Enterprise Data Guard API")
@@ -17,7 +17,7 @@ app = FastAPI(title="Enterprise Data Guard API")
 # -----------------------------
 # 1️⃣ Include API routers
 # -----------------------------
-# Include routers with tags for documentation
+# Include core routers with tags for documentation
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(docs_router, prefix="/api/documents", tags=["documents"])
 
@@ -36,7 +36,7 @@ app.add_middleware(
 # 3️⃣ Static folders
 # -----------------------------
 # Ensure static folders exist for documents and reports
-os.makedirs("static", exist_ok=True)
+os.makedirs("static/docs", exist_ok=True) # Ensuring 'docs' exists for modification-diff endpoint
 os.makedirs("reports", exist_ok=True)
 
 # Mount static file directories for serving documents and reports
@@ -44,15 +44,16 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/reports", StaticFiles(directory="reports"), name="reports")
 
 # -----------------------------
-# 4️⃣ React frontend setup (SPA Catch-all)
+# 4️⃣ React frontend setup (SPA Catch-all) - Using the robust /frontend-static method
 # -----------------------------
 frontend_build = os.path.join(os.path.dirname(__file__), "../frontend/build")
 index_file = os.path.join(frontend_build, "index.html")
 
 if os.path.exists(frontend_build):
-    # Mount React build at root
-    app.mount("/", StaticFiles(directory=frontend_build, html=True), name="frontend")
-    print(f"✅ Frontend build mounted at root: {frontend_build}")
+    # Mount frontend static assets separately
+    # This prevents the StaticFiles mount from overriding all other API/static routes
+    app.mount("/frontend-static", StaticFiles(directory=frontend_build, html=True), name="frontend-static")
+    print(f"✅ Frontend build found and mounted at /frontend-static: {frontend_build}")
 else:
     print(f"⚠️ Frontend build folder not found at {frontend_build}. Only API will work.")
 
@@ -62,11 +63,11 @@ async def serve_react(full_path: str):
     Serve React frontend for all non-API routes.
     This ensures SPA routing (e.g., /dashboard, /login) works by always returning index.html.
     """
-    # Prevent catch-all from trapping API calls or static files
-    if full_path.startswith("api") or full_path.startswith("static") or full_path.startswith("reports"):
-        raise HTTPException(status_code=404, detail="API endpoint or static file not found")
+    # Prevent this catch-all from trapping API calls or files served by the explicit StaticFiles mounts
+    if full_path.startswith("api") or full_path.startswith("static") or full_path.startswith("reports") or full_path.startswith("frontend-static"):
+        raise HTTPException(status_code=404, detail="API endpoint or Static file not found")
     
-    # Serve index.html for all other routes
+    # Serve the index.html for all other paths (SPA routing)
     if os.path.exists(index_file):
         return FileResponse(index_file)
     else:
@@ -78,15 +79,27 @@ async def serve_react(full_path: str):
 init_database()
 
 # -----------------------------
-# 6️⃣ Admin dashboard & endpoints
+# 6️⃣ Admin dashboard & endpoints (Refactored into APIRouter)
 # -----------------------------
+admin_router = APIRouter(
+    prefix="/api/admin", 
+    tags=["admin"],
+    # Apply the basic authentication dependency to all routes in this router
+    dependencies=[Depends(get_current_user)] 
+)
 
-@app.get("/api/admin/dashboard")
-async def get_admin_dashboard(current_user: User = Depends(get_current_user)):
-    """Get comprehensive admin dashboard data"""
+# Admin utility function to check role (used as a dependency in the router functions)
+def check_admin_role(current_user: User = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
-    
+    return current_user
+
+# ----------------
+# Dashboard
+# ----------------
+@admin_router.get("/dashboard")
+async def get_admin_dashboard(current_user: User = Depends(check_admin_role)):
+    """Get comprehensive admin dashboard data"""
     try:
         # Get recent alerts
         alerts = execute_db_query('''
@@ -107,12 +120,6 @@ async def get_admin_dashboard(current_user: User = Depends(get_current_user)):
             LIMIT 30
         ''', fetch_all=True)
         
-        # Calculate summary statistics
-        total_alerts = len(alerts) if alerts else 0
-        high_risk_alerts = len([a for a in (alerts or []) if a['risk_score'] >= 0.7])
-        recent_access = len(access_logs) if access_logs else 0
-        anomalous_activities = len([l for l in (access_logs or []) if l['anomaly_flag']])
-        
         # Get document stats for overview
         doc_stats = execute_db_query('''
             SELECT department, COUNT(*) as count 
@@ -127,6 +134,12 @@ async def get_admin_dashboard(current_user: User = Depends(get_current_user)):
             WHERE role != 'admin' 
             GROUP BY department
         ''', fetch_all=True)
+        
+        # Calculate summary statistics
+        total_alerts = len(alerts) if alerts else 0
+        high_risk_alerts = len([a for a in (alerts or []) if a['risk_score'] >= 0.7])
+        recent_access = len(access_logs) if access_logs else 0
+        anomalous_activities = len([l for l in (access_logs or []) if l['anomaly_flag']])
         
         return {
             "alerts": alerts or [],
@@ -160,12 +173,12 @@ async def get_admin_dashboard(current_user: User = Depends(get_current_user)):
             }
         }
 
-@app.get("/api/admin/modifications")
-async def get_document_modifications(current_user: User = Depends(get_current_user)):
+# ----------------
+# Modifications
+# ----------------
+@admin_router.get("/modifications")
+async def get_document_modifications(current_user: User = Depends(check_admin_role)):
     """Get document modifications for admin dashboard"""
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
     try:
         # Get from access logs where action indicates modification
         modifications = execute_db_query('''
@@ -193,12 +206,9 @@ async def get_document_modifications(current_user: User = Depends(get_current_us
         print(f"Modifications error: {e}")
         return {"modifications": []}
 
-@app.get("/api/admin/data-leaks")
-async def get_data_leak_attempts(current_user: User = Depends(get_current_user)):
+@admin_router.get("/data-leaks")
+async def get_data_leak_attempts(current_user: User = Depends(check_admin_role)):
     """Get data leak attempts for admin analysis"""
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
     try:
         # Get cross-department access attempts and unauthorized access
         attempts = execute_db_query('''
@@ -226,12 +236,9 @@ async def get_data_leak_attempts(current_user: User = Depends(get_current_user))
         print(f"Data leaks error: {e}")
         return {"attempts": []}
 
-@app.get("/api/admin/modification-diff/{modification_id}")
-async def get_modification_diff(modification_id: int, current_user: User = Depends(get_current_user)):
+@admin_router.get("/modification-diff/{modification_id}")
+async def get_modification_diff(modification_id: int, current_user: User = Depends(check_admin_role)):
     """Get detailed diff for a document modification"""
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
     try:
         # Get the access log entry
         log_entry = execute_db_query(
@@ -291,12 +298,12 @@ async def get_modification_diff(modification_id: int, current_user: User = Depen
         print(f"Modification diff error: {e}")
         raise HTTPException(status_code=500, detail="Failed to get modification details")
 
-@app.get("/api/admin/alerts")
-async def get_alerts(current_user: User = Depends(get_current_user)):
+# ----------------
+# Alerts
+# ----------------
+@admin_router.get("/alerts")
+async def get_alerts(current_user: User = Depends(check_admin_role)):
     """Get all alerts"""
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
     try:
         alerts = execute_db_query('''
             SELECT a.*, u.username, u.department 
@@ -310,12 +317,9 @@ async def get_alerts(current_user: User = Depends(get_current_user)):
         print(f"Alerts error: {e}")
         return {"alerts": []}
 
-@app.post("/api/admin/alerts/{alert_id}/resolve")
-async def resolve_alert(alert_id: int, current_user: User = Depends(get_current_user)):
+@admin_router.post("/alerts/{alert_id}/resolve")
+async def resolve_alert(alert_id: int, current_user: User = Depends(check_admin_role)):
     """Resolve an alert"""
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
     try:
         execute_db_query(
             "UPDATE alerts SET resolved = 1 WHERE id = ?", 
@@ -326,12 +330,12 @@ async def resolve_alert(alert_id: int, current_user: User = Depends(get_current_
         print(f"Resolve alert error: {e}")
         raise HTTPException(status_code=500, detail="Failed to resolve alert")
 
-@app.get("/api/admin/access-logs")
-async def get_access_logs(current_user: User = Depends(get_current_user)):
+# ----------------
+# Access Logs
+# ----------------
+@admin_router.get("/access-logs")
+async def get_access_logs(current_user: User = Depends(check_admin_role)):
     """Get access logs"""
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
     try:
         logs = execute_db_query('''
             SELECT al.*, u.username, u.department
@@ -346,12 +350,12 @@ async def get_access_logs(current_user: User = Depends(get_current_user)):
         print(f"Access logs error: {e}")
         return {"logs": []}
 
-@app.get("/api/admin/reports/generate")
-async def generate_report(days: int = 7, format: str = "txt", current_user: User = Depends(get_current_user)):
+# ----------------
+# Reports
+# ----------------
+@admin_router.get("/reports/generate")
+async def generate_report(days: int = 7, format: str = "txt", current_user: User = Depends(check_admin_role)):
     """Generate comprehensive security report in text or PDF format"""
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
     try:
         
         # Get data for report
@@ -374,11 +378,8 @@ async def generate_report(days: int = 7, format: str = "txt", current_user: User
         # Generate PDF report if requested
         if format.lower() == "pdf":
             # NOTE: Assuming reports.report_generator module exists for PDF generation
-            # You will need to ensure 'reports' is a valid package and contains 'report_generator.py'
             from reports.report_generator import pdf_generator
             try:
-                # The original code passes 'days' but this is not available to me.
-                # Assuming pdf_generator.generate_comprehensive_security_report is a callable method
                 pdf_path = pdf_generator.generate_comprehensive_security_report(days)
                 filename = os.path.basename(pdf_path)
                 return {
@@ -495,12 +496,9 @@ async def generate_report(days: int = 7, format: str = "txt", current_user: User
         print(f"Report generation error: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate report")
 
-@app.get("/api/admin/system-health")
-async def get_system_health(current_user: User = Depends(get_current_user)):
+@admin_router.get("/system-health")
+async def get_system_health(current_user: User = Depends(check_admin_role)):
     """Get system health metrics"""
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
     try:
         # Get health metrics
         alerts_count = execute_db_query(
@@ -560,6 +558,9 @@ async def get_system_health(current_user: User = Depends(get_current_user)):
             "daily_anomalies": 0
         }
 
+# Include the admin router in the main app
+app.include_router(admin_router)
+
 # -----------------------------
 # 7️⃣ Health check
 # -----------------------------
@@ -567,6 +568,7 @@ async def get_system_health(current_user: User = Depends(get_current_user)):
 async def health_check():
     """Simple health check endpoint"""
     return {"status": "ok"}
+
 
 
 # if __name__ == "__main__":

@@ -12,6 +12,13 @@ import os
 import json
 from datetime import datetime, timedelta
 from typing import Optional
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
+
+# Serve frontend build folder
+frontend_path = os.path.join(os.path.dirname(__file__), "../frontend/build")
+app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
 
 # Initialize database
 init_database()

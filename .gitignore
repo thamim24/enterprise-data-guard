@@ -20,7 +20,7 @@ Readme1.md
 
 # Frontend specific (if node_modules might appear at root, though better handled in frontend/.gitignore)
 /frontend/node_modules/
-/frontend/build/
+# /frontend/build/
 
 # Python specific files generally not needed
 *.pyc

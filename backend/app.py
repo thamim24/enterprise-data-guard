@@ -19,7 +19,12 @@ import os
 app = FastAPI()
 
 frontend_path = os.path.join(os.path.dirname(__file__), "../frontend/build")
-app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
+
+if os.path.exists(frontend_path):
+    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
+else:
+    print(f"⚠️ Frontend build folder not found at {frontend_path}. Only API will work.")
+
 
 # Initialize database
 init_database()

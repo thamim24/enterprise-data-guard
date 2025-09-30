@@ -447,6 +447,10 @@ async def generate_report(days: int = 7, format: str = "txt", current_user: User
         print(f"Report generation error: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate report")
 
+@app.get("/healthz")
+async def health_check():
+    return {"status": "ok"}
+
 @app.get("/api/admin/system-health")
 async def get_system_health(current_user: User = Depends(get_current_user)):
     """Get system health metrics"""
@@ -506,6 +510,6 @@ async def get_system_health(current_user: User = Depends(get_current_user)):
             "daily_anomalies": 0
         }
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+# if __name__ == "__main__":
+#     import uvicorn
+#     uvicorn.run(app, host="0.0.0.0", port=8000)

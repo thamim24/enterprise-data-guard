@@ -12,18 +12,22 @@ import os
 import json
 from datetime import datetime, timedelta
 from typing import Optional
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 import os
 
-# Serve frontend build folder
-frontend_path = os.path.join(os.path.dirname(__file__), "../frontend/build")
+app = FastAPI()
+
+frontend_path = os.path.join(os.path.dirname(__file__), "frontend_build")
 app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
+
+# Example API route
+@app.get("/api/health")
+def health_check():
+    return {"status": "ok"}
 
 # Initialize database
 init_database()
-
-app = FastAPI()
 
 # CORS middleware - Allow access from any IP for development
 app.add_middleware(

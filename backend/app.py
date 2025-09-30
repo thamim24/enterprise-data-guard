@@ -50,9 +50,9 @@ frontend_build = os.path.join(os.path.dirname(__file__), "../frontend/build")
 index_file = os.path.join(frontend_build, "index.html")
 
 if os.path.exists(frontend_build):
-    # Mount frontend static assets separately
-    app.mount("/frontend-static", StaticFiles(directory=frontend_build, html=True), name="frontend-static")
-    print(f"✅ Frontend build found at {frontend_build}")
+    # Mount React build at root
+    app.mount("/", StaticFiles(directory=frontend_build, html=True), name="frontend")
+    print(f"✅ Frontend build mounted at root: {frontend_build}")
 else:
     print(f"⚠️ Frontend build folder not found at {frontend_build}. Only API will work.")
 
@@ -62,11 +62,11 @@ async def serve_react(full_path: str):
     Serve React frontend for all non-API routes.
     This ensures SPA routing (e.g., /dashboard, /login) works by always returning index.html.
     """
-    # Prevent this catch-all from trapping API calls
+    # Prevent catch-all from trapping API calls or static files
     if full_path.startswith("api") or full_path.startswith("static") or full_path.startswith("reports"):
-        raise HTTPException(status_code=404, detail="API endpoint not found or Static file not found")
+        raise HTTPException(status_code=404, detail="API endpoint or static file not found")
     
-    # Serve the index.html for all other paths
+    # Serve index.html for all other routes
     if os.path.exists(index_file):
         return FileResponse(index_file)
     else:

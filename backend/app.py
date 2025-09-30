@@ -18,7 +18,7 @@ import os
 
 app = FastAPI()
 
-frontend_path = os.path.join(os.path.dirname(__file__), "frontend_build")
+frontend_path = os.path.join(os.path.dirname(__file__), "../frontend/build")
 app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
 
 # Initialize database

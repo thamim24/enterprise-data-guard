@@ -34,3 +34,4 @@ static/docs/backups/
 # Operating System Files
 .DS_Store
 Thumbs.db
+test_dependencies.py

@@ -51,21 +51,6 @@ const UserDashboard = ({ user, onLogout }) => {
     fetchDocuments();
   };
 
-  const handleDelete = async (docId, filename) => {
-    if (window.confirm(`Are you sure you want to delete "${filename}"?`)) {
-      try {
-        const token = localStorage.getItem('token');
-        await axios.delete(`http://localhost:8000/api/documents/delete/${docId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        alert('Document deleted successfully');
-        fetchDocuments(); // Refresh the list
-      } catch (error) {
-        alert(error.response?.data?.detail || 'Delete failed');
-      }
-    }
-  };
-
   if (loading) {
     return <div className="loading">Loading dashboard</div>;
   }
@@ -130,18 +115,9 @@ const UserDashboard = ({ user, onLogout }) => {
                       <button 
                         className="btn btn-primary btn-small" 
                         onClick={() => handleDownload(doc.id, doc.name)}
-                        style={{ marginRight: '8px' }}
                       >
                         Download
                       </button>
-                      {(user.role === 'admin' || doc.modified_by_username === user.username) && (
-                        <button 
-                          className="btn btn-danger btn-small" 
-                          onClick={() => handleDelete(doc.id, doc.name)}
-                        >
-                          Delete
-                        </button>
-                      )}
                     </td>
                   </tr>
                 ))}
@@ -152,7 +128,7 @@ const UserDashboard = ({ user, onLogout }) => {
 
         <div className="card">
           <h3>Quick Statistics</h3>
-          <div className="metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4.5rem', marginBottom: '2rem' }}>
+          <div className="metrics-grid">
             <div className="metric-card info">
               <h3>Available Documents</h3>
               <div className="metric-value">{documents.length}</div>
@@ -160,7 +136,7 @@ const UserDashboard = ({ user, onLogout }) => {
             </div>
             <div className="metric-card success">
               <h3>Your Department</h3>
-              <div className="metric-value" style={{ fontSize: '2.4rem' }}>{user.department}</div>
+              <div className="metric-value" style={{ fontSize: '1.5rem' }}>{user.department}</div>
               <div className="metric-label">Access level</div>
             </div>
             <div className="metric-card neutral">
@@ -188,7 +164,7 @@ const UserDashboard = ({ user, onLogout }) => {
                   <h4>{doc.name}</h4>
                   <p><strong>Department:</strong> {doc.department}</p>
                   <p><strong>Last Modified:</strong> {new Date(doc.updated_at).toLocaleDateString()}</p>
-                  <p><strong>Uploaded By:</strong> {doc.modified_by_username || 'System'}</p>
+                  <p><strong>Modified By:</strong> {doc.modified_by_username || 'System'}</p>
                   <button 
                     className="btn btn-primary btn-small mt-2" 
                     onClick={() => handleDownload(doc.id, doc.name)}

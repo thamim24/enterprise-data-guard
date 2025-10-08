@@ -18,21 +18,20 @@ const Login = ({ onLogin }) => {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setError('');
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-  try {
-    const response = await axios.post('/api/auth/login', formData); // <-- relative URL
-    const { access_token, user } = response.data;
-    onLogin(user, access_token);
-  } catch (error) {
-    setError(error.response?.data?.detail || 'Login failed');
-  } finally {
-    setLoading(false);
-  }
-};
-
+    try {
+      const response = await axios.post('http://localhost:8000/api/auth/login', formData);
+      const { access_token, user } = response.data;
+      onLogin(user, access_token);
+    } catch (error) {
+      setError(error.response?.data?.detail || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="container">

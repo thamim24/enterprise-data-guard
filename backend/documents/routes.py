@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse
 from auth.routes import get_current_user
 from auth.models import User
 from db import execute_db_query, get_current_ist_timestamp, log_access, create_alert
+from anomaly.analyzer import analyze_access_pattern
 import os
 import shutil
 import hashlib
@@ -61,13 +62,19 @@ async def download_document(doc_id: int, current_user: User = Depends(get_curren
         
         # Check permissions for non-admin users
         if current_user.role != "admin" and document['department'] != current_user.department:
-            # Log potential data leak attempt
-            log_access(current_user.id, doc_id, document['name'], "unauthorized_access_attempt")
+            # Calculate ML-based risk score for unauthorized access
+            risk_score = analyze_access_pattern(current_user.id, "unauthorized_access_attempt", current_user.department)
+            risk_score = max(0.8, risk_score)  # Unauthorized access is always high risk
+            
+            # Log potential data leak attempt with ML risk score
+            log_access(current_user.id, doc_id, document['name'], "unauthorized_access_attempt", 
+                      anomaly_flag=True, risk_score=risk_score)
             create_alert(
                 current_user.id, 
                 document['name'], 
                 "unauthorized_access",
-                f"User from {current_user.department} tried to access {document['department']} document"
+                f"User from {current_user.department} tried to access {document['department']} document",
+                risk_score
             )
             raise HTTPException(status_code=403, detail="Access denied")
         
@@ -75,8 +82,13 @@ async def download_document(doc_id: int, current_user: User = Depends(get_curren
         if not os.path.exists(filepath):
             raise HTTPException(status_code=404, detail="File not found")
         
-        # Log successful access
-        log_access(current_user.id, doc_id, document['name'], "download")
+        # Calculate ML-based risk score for legitimate access
+        risk_score = analyze_access_pattern(current_user.id, "download", current_user.department)
+        is_anomaly = risk_score >= 0.7
+        
+        # Log successful access with ML-calculated risk score
+        log_access(current_user.id, doc_id, document['name'], "download", 
+                  anomaly_flag=is_anomaly, risk_score=risk_score)
         
         return FileResponse(
             path=filepath,
@@ -100,12 +112,18 @@ async def upload_document(
     try:
         # Check permissions for non-admin users
         if current_user.role != "admin" and department != current_user.department:
-            log_access(current_user.id, None, file.filename, "unauthorized_upload_attempt")
+            # Calculate ML-based risk score for unauthorized upload
+            risk_score = analyze_access_pattern(current_user.id, "unauthorized_upload_attempt", current_user.department)
+            risk_score = max(0.8, risk_score)  # Unauthorized upload is always high risk
+            
+            log_access(current_user.id, None, file.filename, "unauthorized_upload_attempt", 
+                      anomaly_flag=True, risk_score=risk_score)
             create_alert(
                 current_user.id,
                 file.filename,
                 "unauthorized_upload",
-                f"User tried to upload to {department} department"
+                f"User tried to upload to {department} department",
+                risk_score
             )
             raise HTTPException(status_code=403, detail="Cannot upload to other departments")
         
@@ -155,7 +173,10 @@ async def upload_document(
                     from reports.diff_utils import calculate_diff_stats
                     diff_stats = calculate_diff_stats(old_content, new_content)
                     
-                    risk_score = min(1.0, diff_stats['change_percentage'] / 100)
+                    # Combine diff-based risk with ML-based risk
+                    diff_risk = min(1.0, diff_stats['change_percentage'] / 100)
+                    ml_risk = analyze_access_pattern(current_user.id, "update", current_user.department)
+                    risk_score = max(diff_risk, ml_risk)
                     
                     create_alert(
                         current_user.id,
@@ -166,13 +187,18 @@ async def upload_document(
                     )
                 except Exception as e:
                     print(f"Error analyzing diff: {e}")
+                    # Use ML-based risk scoring as fallback
+                    risk_score = analyze_access_pattern(current_user.id, "update", current_user.department)
                     create_alert(
                         current_user.id,
                         file.filename,
                         "document_modified",
                         f"Document {file.filename} was modified",
-                        0.3
+                        risk_score
                     )
+            else:
+                # No changes detected, use ML risk scoring
+                risk_score = analyze_access_pattern(current_user.id, "update", current_user.department)
             
             execute_db_query('''
                 UPDATE documents 
@@ -180,10 +206,15 @@ async def upload_document(
                 WHERE filepath = ?
             ''', (new_hash, current_user.id, get_current_ist_timestamp(), filepath))
             
+            # Use calculated risk score and determine anomaly flag
+            is_anomaly = risk_score >= 0.7 or old_hash != new_hash
             log_access(current_user.id, doc_id, file.filename, "update", 
-                      anomaly_flag=(old_hash != new_hash), 
-                      risk_score=0.3 if old_hash != new_hash else 0.0)
+                      anomaly_flag=is_anomaly, risk_score=risk_score)
         else:
+            # Calculate ML-based risk score for new upload
+            risk_score = analyze_access_pattern(current_user.id, "upload", current_user.department)
+            is_anomaly = risk_score >= 0.7
+            
             # Create new document record
             execute_db_query('''
                 INSERT INTO documents (name, department, filepath, version_hash, modified_by, created_at, updated_at)
@@ -191,7 +222,8 @@ async def upload_document(
             ''', (file.filename, department, filepath, new_hash, current_user.id, 
                   get_current_ist_timestamp(), get_current_ist_timestamp()))
             
-            log_access(current_user.id, None, file.filename, "upload")
+            log_access(current_user.id, None, file.filename, "upload", 
+                      anomaly_flag=is_anomaly, risk_score=risk_score)
         
         return {"message": "File uploaded successfully", "filename": file.filename}
         
@@ -216,14 +248,24 @@ async def delete_document(doc_id: int, current_user: User = Depends(get_current_
         
         # Check permissions
         if current_user.role != "admin" and document['department'] != current_user.department:
-            log_access(current_user.id, doc_id, document['name'], "unauthorized_delete_attempt")
+            # Calculate ML-based risk score for unauthorized delete
+            risk_score = analyze_access_pattern(current_user.id, "unauthorized_delete_attempt", current_user.department)
+            risk_score = max(0.8, risk_score)  # Unauthorized delete is always high risk
+            
+            log_access(current_user.id, doc_id, document['name'], "unauthorized_delete_attempt", 
+                      anomaly_flag=True, risk_score=risk_score)
             create_alert(
                 current_user.id,
                 document['name'],
                 "unauthorized_delete",
-                f"User tried to delete {document['department']} document"
+                f"User tried to delete {document['department']} document",
+                risk_score
             )
             raise HTTPException(status_code=403, detail="Cannot delete other department documents")
+        
+        # Calculate ML-based risk score for legitimate delete
+        risk_score = analyze_access_pattern(current_user.id, "delete", current_user.department)
+        is_anomaly = risk_score >= 0.7
         
         # Create backup before deletion
         filepath = document['filepath']
@@ -237,13 +279,15 @@ async def delete_document(doc_id: int, current_user: User = Depends(get_current_
         # Remove from database
         execute_db_query("DELETE FROM documents WHERE id = ?", (doc_id,))
         
-        # Log deletion
-        log_access(current_user.id, doc_id, document['name'], "delete")
+        # Log deletion with ML-calculated risk score
+        log_access(current_user.id, doc_id, document['name'], "delete", 
+                  anomaly_flag=is_anomaly, risk_score=risk_score)
         create_alert(
             current_user.id,
             document['name'],
             "document_deleted",
-            f"Document {document['name']} was deleted"
+            f"Document {document['name']} was deleted",
+            risk_score
         )
         
         return {"message": "Document deleted successfully"}

@@ -86,16 +86,13 @@ const AdminDashboard = ({ user, onLogout }) => {
   const resolveAlert = async (alertId) => {
     try {
       const token = localStorage.getItem('token');
-      // Since alerts are generated from access_logs, we'll mark them as "resolved" by updating the access_logs
-      await axios.post(`http://localhost:8000/api/admin/access-logs/${alertId}/resolve`, {}, {
+      await axios.post(`http://localhost:8000/api/admin/alerts/${alertId}/resolve`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      alert('Alert resolved successfully');
       fetchDashboardData();
     } catch (error) {
-      console.error('Resolve error:', error);
-      alert('Failed to resolve alert: ' + (error.response?.data?.detail || 'Unknown error'));
+      alert('Failed to resolve alert');
     }
   };
 

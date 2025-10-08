@@ -1,4 +1,3 @@
-# backend/anomaly/analyzer.py
 from .ml_models import anomaly_detector
 from documents.access_log import get_access_logs
 from db import get_db_connection
